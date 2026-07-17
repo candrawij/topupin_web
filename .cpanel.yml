@@ -1,0 +1,4 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/ekovmljg/public_html
+    - /bin/rsync -avz --exclude '.git' --exclude 'bot' --exclude 'node_modules' --exclude '.cpanel.yml' ./ $DEPLOYPATH
