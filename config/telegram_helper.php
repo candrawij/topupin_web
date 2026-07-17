@@ -8,6 +8,11 @@ if (!defined('DEEP_LINK_SECRET')) {
     define('DEEP_LINK_SECRET', 'topupgames_secret_key_deep_link_32');
 }
 
+// URL internal bot Node.js (dijalankan di server yang sama, port 3001)
+if (!defined('BOT_API_BASE_URL')) {
+    define('BOT_API_BASE_URL', 'http://localhost:3001');
+}
+
 /**
  * Mendapatkan kunci enkripsi 32-byte dari secret key menggunakan SHA-256
  */
@@ -75,4 +80,64 @@ function buildCustomerTelegramLink($userId, $ticketId) {
  */
 function buildTrxTelegramLink($trxId) {
     return "https://t.me/" . TELEGRAM_BOT_USERNAME . "?start=trx_" . $trxId;
+}
+
+/**
+ * Memanggil API internal bot untuk mengirim notifikasi Telegram ke user
+ * Bot harus sudah berjalan (npm start / pm2) agar fungsi ini berhasil
+ *
+ * @param string $trxId  ID transaksi (misal: TRX-5)
+ * @param string $status Status baru: 'success' | 'failed' | 'pending'
+ * @return array|null    Response dari bot API, atau null jika gagal/bot tidak aktif
+ */
+function notifyBotTransaction($trxId, $status) {
+    $url = BOT_API_BASE_URL . '/api/notify-transaction';
+
+    $payload = json_encode([
+        'trxId'  => $trxId,
+        'status' => $status,
+    ]);
+
+    $opts = [
+        'http' => [
+            'method'        => 'POST',
+            'header'        => "Content-Type: application/json\r\n" .
+                               "Content-Length: " . strlen($payload) . "\r\n",
+            'content'       => $payload,
+            'timeout'       => 5, // timeout 5 detik agar tidak memblokir website
+            'ignore_errors' => true,
+        ],
+    ];
+
+    $context  = stream_context_create($opts);
+    $response = @file_get_contents($url, false, $context);
+
+    if ($response === false) {
+        // Bot tidak aktif atau tidak bisa dijangkau — tidak fatal untuk website
+        error_log("[telegram_helper] Bot API tidak dapat dijangkau di " . $url);
+        return null;
+    }
+
+    return json_decode($response, true);
+}
+
+/**
+ * Memeriksa apakah bot API sedang aktif berjalan
+ * 
+ * @return bool true jika bot aktif, false jika tidak
+ */
+function isBotApiAlive() {
+    $url = BOT_API_BASE_URL . '/health';
+    $opts = [
+        'http' => [
+            'method'        => 'GET',
+            'timeout'       => 2,
+            'ignore_errors' => true,
+        ],
+    ];
+    $context  = stream_context_create($opts);
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) return false;
+    $data = json_decode($response, true);
+    return isset($data['status']) && $data['status'] === 'ok';
 }

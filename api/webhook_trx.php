@@ -1,5 +1,7 @@
 <?php
 // c:\laragon\www\TopUpin\api\webhook_trx.php
+// Dipanggil oleh Bot Telegram saat admin menandai transaksi sukses/gagal.
+// Bot memanggil endpoint ini, lalu PHP update DB + (opsional) balas notif via bot.
 
 header('Content-Type: application/json');
 include "../config/koneksi.php";
@@ -66,11 +68,15 @@ if (!$trx) {
 $updateQuery = mysqli_query($conn, "UPDATE transaksi SET status = '$newStatus' WHERE id_trx = $id_trx");
 
 if ($updateQuery) {
+    // Kirim notifikasi Telegram ke user via bot API (tidak fatal jika bot tidak aktif)
+    $botResponse = notifyBotTransaction($trxId, strtolower($status));
+
     echo json_encode([
-        'success' => true,
-        'message' => 'Transaction status updated successfully',
-        'id_trx' => $id_trx,
-        'status' => $newStatus
+        'success'      => true,
+        'message'      => 'Transaction status updated successfully',
+        'id_trx'       => $id_trx,
+        'status'       => $newStatus,
+        'bot_notified' => $botResponse !== null,
     ]);
 } else {
     http_response_code(500);
