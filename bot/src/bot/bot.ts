@@ -80,8 +80,9 @@ const userToAdminTemplate = (userName: string, userId: number, message: string, 
   '',
   '━━━━━━━━━━━━━━━━━━━━━',
   `👤 **Nama:** ${escapeMd(userName)}`,
-  `🆔 **User ID:** ${userId}`,
+  `🆔 **Telegram ID:** ${userId}`,
   `📌 **Tiket:** #${ticketId}`,
+  `📅 **Waktu:** ${new Date().toLocaleString('id-ID')}`,
   trxInfo ? `📦 **Trx:** ${escapeMd(trxInfo)}` : '',
   '',
   '━━━━━━━━━━━━━━━━━━━━━',
@@ -89,14 +90,7 @@ const userToAdminTemplate = (userName: string, userId: number, message: string, 
   `"${escapeMd(message)}"`,
   '',
   '━━━━━━━━━━━━━━━━━━━━━',
-  '📎 **Informasi Tambahan:**',
-  '• Platform: Telegram',
-  '- WIB: saat ini',
-  '- User aktif: ✅',
-  '- Total transaksi user: 12',
-  '',
-  '━━━━━━━━━━━━━━━━━━━━━',
-  '💬 *Balas pesan ini untuk membalas pelanggan.*',
+  '💬 *Reply/balas pesan ini untuk membalas pelanggan langsung.*',
 ].filter(Boolean).join('\n');
 
 const customerReplyTemplate = (name: string, replyText: string, ticketId: string): string => [
@@ -190,9 +184,10 @@ function buildMainMenu(role: string): InlineKeyboard {
   }
 
   if (role === 'admin') {
-    keyboard.text('🧾 Semua tiket', 'admin_all_tickets').row();
-    keyboard.text('⚠️ Ticket urgent', 'admin_urgent').row();
     keyboard.text('📊 Dashboard', 'admin_dashboard').row();
+    keyboard.text('🧾 Semua Tiket CS', 'admin_all_tickets').row();
+    keyboard.text('⚠️ Tiket Urgent', 'admin_urgent').row();
+    keyboard.text('📦 Semua Transaksi', 'admin_all_trx').row();
     keyboard.text('📥 Ekspor CSV', 'admin_export_csv').row();
   }
 
@@ -452,24 +447,35 @@ bot.command('menu', async (ctx) => {
 });
 
 bot.command('help', async (ctx) => {
-  const helpText = [
-    '📖 **Daftar Perintah Bot**',
+  const telegramId = ctx.from?.id ?? 0;
+  const role = getUserSession(telegramId)?.role ?? 'customer';
+
+  const helpLines = [
+    '📖 **Panduan Bot TopUpIn**',
     '',
     '━━━━━━━━━━━━━━━━━━━━━',
-    '🔹 `/start` - Memulai chat & membuat tiket',
-    '🔹 `/menu` - Menampilkan menu utama',
-    '🔹 `/status` - Cek status tiket aktif',
-    '🔹 `/help` - Menampilkan bantuan ini',
+    '🔹 `/start` — Mulai chat & buat tiket CS',
+    '🔹 `/menu` — Tampilkan menu utama',
+    '🔹 `/status` — Cek status tiket aktif Anda',
+    '🔹 `/help` — Panduan ini',
     '',
     '━━━━━━━━━━━━━━━━━━━━━',
-    '**Khusus CS & Admin:**',
-    '🔸 `/cs` - Mode CS (ambil tiket, dll)',
-    '🔸 `/admin` - Mode Admin (dashboard, dll)',
-    '',
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '📌 *Ketik perintah di atas untuk mengakses fitur.*'
-  ].join('\n');
-  await ctx.reply(helpText, { parse_mode: 'Markdown' });
+  ];
+
+  if (role === 'cs') {
+    helpLines.push('**Mode CS:**', '🔸 `/cs` — Masuk mode CS & lihat antrean tiket', '');
+    helpLines.push('━━━━━━━━━━━━━━━━━━━━━');
+  } else if (role === 'admin') {
+    helpLines.push('**Mode Admin:**', '🔸 `/admin` — Masuk mode Admin & dashboard', '🔸 `/cs` — Akses mode CS', '');
+    helpLines.push('━━━━━━━━━━━━━━━━━━━━━');
+  }
+
+  helpLines.push(
+    `🌐 Website: ${config.websiteBaseUrl}`,
+    '📌 *Ketik pesan langsung untuk chat dengan CS.*'
+  );
+
+  await ctx.reply(helpLines.join('\n'), { parse_mode: 'Markdown' });
 });
 
 bot.command('status', async (ctx) => {
@@ -598,9 +604,9 @@ bot.on('callback_query:data', async (ctx) => {
   if (data.startsWith('select_product:')) {
     const productId = Number(data.replace('select_product:', ''));
     const session = getUserSession(telegramId);
-    
+
     if (!session || !session.orderData || !session.orderData.gameId) {
-      await ctx.answerCallbackQuery('Sesi pemesanan Anda tidak valid, silakan ulangi pesanan dari awal.');
+      await ctx.answerCallbackQuery('Sesi pemesanan tidak valid. Silakan ulangi dari awal.');
       return;
     }
 
@@ -614,17 +620,66 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
-    const firstUser = await prisma.user.findFirst();
-    const userGameId = session.orderData.userGameId || 'UNKNOWN';
+    // Simpan productId ke session, tampilkan ringkasan konfirmasi
+    updateUserSession(telegramId, {
+      orderData: { ...session.orderData, productId }
+    });
 
-    const randomTrxId = `TRX-${Math.floor(100 + Math.random() * 900)}`;
-    const transaction = await prisma.transaction.create({
+    const userGameId = session.orderData.userGameId || 'UNKNOWN';
+    const confirmText = [
+      '📋 **RINGKASAN PESANAN**',
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      `🎮 **Game:** ${product.game.name}`,
+      `🆔 **ID Game:** ${userGameId}`,
+      `📦 **Produk:** ${product.name}`,
+      `💰 **Total:** Rp ${Number(product.price).toLocaleString('id-ID')}`,
+      `💳 **Metode:** QRIS / Transfer Bank`,
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      '⚠️ *Pastikan ID Game Anda sudah benar sebelum konfirmasi.*',
+    ].join('\n');
+
+    const confirmKeyboard = new InlineKeyboard()
+      .text('✅ Konfirmasi Pesanan', `confirm_order:${productId}`)
+      .row()
+      .text('❌ Batalkan', 'cancel_order');
+
+    await ctx.reply(confirmText, { parse_mode: 'Markdown', reply_markup: confirmKeyboard });
+    await ctx.answerCallbackQuery();
+    return;
+  }
+
+  if (data.startsWith('confirm_order:')) {
+    const productId = Number(data.replace('confirm_order:', ''));
+    const session = getUserSession(telegramId);
+
+    if (!session?.orderData?.gameId) {
+      await ctx.answerCallbackQuery('Sesi tidak valid. Silakan ulangi pesanan.');
+      return;
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { game: true }
+    });
+
+    if (!product) {
+      await ctx.answerCallbackQuery('Produk tidak ditemukan.');
+      return;
+    }
+
+    const userGameId = session.orderData.userGameId || 'UNKNOWN';
+    const firstUser = await prisma.user.findFirst({ where: { telegramId } });
+
+    const randomTrxId = `TRX-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    await prisma.transaction.create({
       data: {
         trxId: randomTrxId,
         gameId: product.gameId,
         productId: product.id,
         userId: firstUser ? firstUser.id : null,
-        userGameId: userGameId,
+        userGameId,
         amount: product.price,
         paymentMethod: 'Qris',
         status: 'pending',
@@ -635,16 +690,19 @@ bot.on('callback_query:data', async (ctx) => {
 
     if (config.adminGroupChatId) {
       const adminText = [
-        '💸 *PESANAN TRANSAKSI BARU (VIA TELEGRAM)*',
+        '💸 **PESANAN BARU (VIA TELEGRAM)**',
         '',
-        `🆔 ID: ${randomTrxId}`,
-        `🎮 Game: ${product.game.name}`,
-        `📦 Produk: ${product.name}`,
-        `👤 ID Game User: ${userGameId}`,
-        `💰 Nominal: Rp ${Number(product.price).toLocaleString('id-ID')}`,
-        `🚦 Status: PENDING`,
+        '━━━━━━━━━━━━━━━━━━━━━',
+        `🆔 **ID Transaksi:** ${randomTrxId}`,
+        `🎮 **Game:** ${product.game.name}`,
+        `📦 **Produk:** ${product.name}`,
+        `👤 **ID Game User:** ${userGameId}`,
+        `💰 **Nominal:** Rp ${Number(product.price).toLocaleString('id-ID')}`,
+        `📅 **Waktu:** ${new Date().toLocaleString('id-ID')}`,
+        `🚦 **Status:** ⏳ PENDING`,
         '',
-        'Silakan proses pesanan ini:'
+        '━━━━━━━━━━━━━━━━━━━━━',
+        '⬇️ Silakan proses pesanan ini:'
       ].join('\n');
 
       const keyboard = new InlineKeyboard()
@@ -661,11 +719,44 @@ bot.on('callback_query:data', async (ctx) => {
       }
     }
 
-    await ctx.reply(
-      `✅ Pesanan berhasil dibuat!\n\n🆔 ID Transaksi: *${randomTrxId}*\n📦 Produk: *${product.name}*\n\nAdmin kami sedang memproses pesanan Anda. Silakan tunggu!`,
-      { parse_mode: 'Markdown' }
-    );
-    await ctx.answerCallbackQuery();
+    // Edit pesan konfirmasi menjadi "Pesanan Dibuat"
+    try {
+      await ctx.editMessageText(
+        [
+          '✅ **Pesanan Berhasil Dibuat!**',
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          `🆔 **ID Transaksi:** \`${randomTrxId}\``,
+          `🎮 **Game:** ${product.game.name}`,
+          `📦 **Produk:** ${product.name}`,
+          `💰 **Total:** Rp ${Number(product.price).toLocaleString('id-ID')}`,
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '📌 Tim admin sedang memproses pesanan Anda.',
+          '🔔 Anda akan mendapat notifikasi saat pesanan selesai.',
+          '',
+          '💬 Ada pertanyaan? Ketik `/menu` → Hubungi CS.',
+        ].join('\n'),
+        { parse_mode: 'Markdown', reply_markup: undefined }
+      );
+    } catch (e) {
+      // ignored
+    }
+    await ctx.answerCallbackQuery('Pesanan berhasil dibuat!');
+    return;
+  }
+
+  if (data === 'cancel_order') {
+    updateUserSession(telegramId, { orderState: 'idle', orderData: undefined });
+    try {
+      await ctx.editMessageText(
+        '❌ **Pesanan Dibatalkan**\n\nPesanan Anda telah dibatalkan. Ketik `/menu` untuk memulai ulang.',
+        { parse_mode: 'Markdown', reply_markup: undefined }
+      );
+    } catch (e) {
+      await ctx.reply('❌ Pesanan dibatalkan.');
+    }
+    await ctx.answerCallbackQuery('Pesanan dibatalkan.');
     return;
   }
 
@@ -682,8 +773,12 @@ bot.on('callback_query:data', async (ctx) => {
   }
 
   if (data === 'customer_website') {
-    await ctx.reply('Kunjungi website: TopUpin.com');
-    await ctx.answerCallbackQuery('Website ditampilkan');
+    const keyboard = new InlineKeyboard().url('🌐 Buka Website TopUpIn', config.websiteBaseUrl);
+    await ctx.reply(
+      `🌐 **Website TopUpIn**\n\nKunjungi website kami untuk melihat katalog produk, melacak pesanan, dan informasi lainnya.`,
+      { parse_mode: 'Markdown', reply_markup: keyboard }
+    );
+    await ctx.answerCallbackQuery('Link website ditampilkan');
     return;
   }
 
@@ -761,8 +856,41 @@ bot.on('callback_query:data', async (ctx) => {
 
   if (data === 'admin_urgent') {
     const tickets = (await listAdminTickets()).filter((ticket) => ticket.priority === 'high');
-    await ctx.reply(ticketListText(tickets));
+    const text = tickets.length === 0
+      ? '✅ Tidak ada tiket urgent saat ini.'
+      : `⚠️ **${tickets.length} Tiket Urgent:**\n\n` + ticketListText(tickets);
+    await ctx.reply(text, { parse_mode: 'Markdown' });
     await ctx.answerCallbackQuery('Menampilkan tiket urgent');
+    return;
+  }
+
+  if (data === 'admin_all_trx') {
+    await ctx.replyWithChatAction('typing');
+    const trxList = await prisma.transaction.findMany({
+      include: { game: true, product: true, user: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    if (trxList.length === 0) {
+      await ctx.reply('📦 Belum ada transaksi di sistem.');
+      await ctx.answerCallbackQuery('Tidak ada transaksi');
+      return;
+    }
+    const lines = [
+      '📦 **10 TRANSAKSI TERBARU**',
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      ...trxList.map((t, i) => {
+        const icon = t.status === 'success' ? '✅' : t.status === 'failed' ? '❌' : '⏳';
+        const tgl = t.createdAt ? new Date(t.createdAt).toLocaleDateString('id-ID') : '-';
+        return `${i+1}. ${icon} \`${t.trxId}\` | ${t.game.name} | Rp ${Number(t.amount).toLocaleString('id-ID')} | ${tgl}`;
+      }),
+      '',
+      '━━━━━━━━━━━━━━━━━━━━━',
+      `📊 **Total:** ${trxList.length} transaksi ditampilkan`,
+    ];
+    await ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
+    await ctx.answerCallbackQuery('Menampilkan transaksi terbaru');
     return;
   }
 
@@ -1170,42 +1298,84 @@ bot.on('callback_query:data', async (ctx) => {
     }
 
     if (trx.user && trx.user.telegramId) {
-      const telegramId = Number(trx.user.telegramId);
-      let messageText = '';
+      const notifTelegramId = Number(trx.user.telegramId);
+      const waktu = new Date().toLocaleString('id-ID');
 
       if (isSuccess) {
-        messageText = [
-          '🔔 *UPDATE TRANSAKSI*',
+        const successText = [
+          '🔔 **UPDATE TRANSAKSI — BERHASIL**',
           '',
+          '━━━━━━━━━━━━━━━━━━━━━',
           `Halo Kak ${trx.user.name || 'Pelanggan'}! 👋`,
-          `Transaksi Anda dengan ID *${trx.trxId}* telah *BERHASIL* diproses!`,
           '',
-          `🎮 *Game*: ${trx.game.name}`,
-          `📦 *Produk*: ${trx.product.name}`,
-          `💰 *Nominal*: Rp ${Number(trx.amount).toLocaleString('id-ID')}`,
-          `🚦 *Status*: SUKSES`,
+          '✅ Pesanan Anda telah **BERHASIL** diproses!',
           '',
-          'Terima kasih sudah berbelanja di TopUpin! 🙏',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '📋 **Detail Transaksi:**',
+          `🆔 **ID:** \`${trx.trxId}\``,
+          `🎮 **Game:** ${trx.game.name}`,
+          `📦 **Produk:** ${trx.product.name}`,
+          `💰 **Total:** Rp ${Number(trx.amount).toLocaleString('id-ID')}`,
+          `📅 **Waktu:** ${waktu}`,
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '🎮 Item/Diamond Anda sedang dikreditkan ke akun game.',
+          'Mohon tunggu beberapa saat dan cek akun game Anda.',
+          '',
+          'Terima kasih sudah berbelanja di TopUpIn! 🙏',
         ].join('\n');
-      } else {
-        messageText = [
-          '🔔 *UPDATE TRANSAKSI*',
-          '',
-          `Halo Kak ${trx.user.name || 'Pelanggan'}!`,
-          `Transaksi Anda dengan ID *${trx.trxId}* *GAGAL* diproses.`,
-          '',
-          `🎮 *Game*: ${trx.game.name}`,
-          `📦 *Produk*: ${trx.product.name}`,
-          `🚦 *Status*: GAGAL`,
-          '',
-          'Silakan hubungi Customer Service kami untuk info lebih lanjut.',
-        ].join('\n');
-      }
 
-      try {
-        await bot.api.sendMessage(telegramId, messageText, { parse_mode: 'Markdown' });
-      } catch (e) {
-        console.error('Failed to send notification to customer:', e);
+        const successKeyboard = new InlineKeyboard()
+          .url('📋 Riwayat Pesanan', `${config.websiteBaseUrl}/riwayat.php`)
+          .row()
+          .text('💬 Hubungi CS', 'customer_help');
+
+        try {
+          await bot.api.sendMessage(notifTelegramId, successText, {
+            parse_mode: 'Markdown',
+            reply_markup: successKeyboard,
+          });
+        } catch (e) {
+          console.error('Failed to send success notification to customer:', e);
+        }
+      } else {
+        const failedText = [
+          '🔔 **UPDATE TRANSAKSI — GAGAL**',
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          `Halo Kak ${trx.user.name || 'Pelanggan'}!`,
+          '',
+          '❌ Mohon maaf, pesanan Anda **GAGAL** diproses.',
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '📋 **Detail Transaksi:**',
+          `🆔 **ID:** \`${trx.trxId}\``,
+          `🎮 **Game:** ${trx.game.name}`,
+          `📦 **Produk:** ${trx.product.name}`,
+          `📅 **Waktu:** ${waktu}`,
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '💰 **Informasi Refund:**',
+          'Jika Anda sudah melakukan pembayaran, dana akan dikembalikan',
+          'dalam **1x24 jam** ke metode pembayaran asal.',
+          '',
+          '━━━━━━━━━━━━━━━━━━━━━',
+          '💬 Hubungi CS kami dengan menyertakan ID Transaksi di atas untuk bantuan lebih lanjut.',
+        ].join('\n');
+
+        const failedKeyboard = new InlineKeyboard()
+          .text('💬 Hubungi CS Sekarang', 'customer_help')
+          .row()
+          .url('📋 Lihat Riwayat', `${config.websiteBaseUrl}/riwayat.php`);
+
+        try {
+          await bot.api.sendMessage(notifTelegramId, failedText, {
+            parse_mode: 'Markdown',
+            reply_markup: failedKeyboard,
+          });
+        } catch (e) {
+          console.error('Failed to send failed notification to customer:', e);
+        }
       }
     }
 
@@ -1292,8 +1462,8 @@ bot.on('message:text', async (ctx) => {
           forwardReference.ticketId,
         );
 
-        await bot.api.sendMessage(forwardReference.userId, responseText);
-        await ctx.reply('✅ Balasan berhasil dikirim ke user.');
+        await bot.api.sendMessage(forwardReference.userId, responseText, { parse_mode: 'Markdown' });
+        await ctx.reply(`✅ Balasan terkirim ke **${forwardReference.userName}** (Tiket: #${forwardReference.ticketId}).`, { parse_mode: 'Markdown' });
 
         const ticket = await getTicketById(forwardReference.ticketId);
         if (ticket) {
@@ -1310,13 +1480,16 @@ bot.on('message:text', async (ctx) => {
     return;
   }
 
+  // Tampilkan "sedang mengetik..." saat memproses pesan
+  await ctx.replyWithChatAction('typing');
+
   const telegramId = ctx.from?.id ?? 0;
   const text = ctx.message.text?.trim() ?? '';
   const session = getUserSession(telegramId);
   const role = session?.role ?? 'customer';
 
   if (!text) {
-    await ctx.reply('⚠️ **Pesan tidak boleh kosong.**\n\nSilakan tulis pesan Anda dengan jelas agar CS dapat membantu dengan maksimal.', { parse_mode: 'Markdown' });
+    await ctx.reply('⚠️ Pesan tidak boleh kosong. Silakan tulis pesan Anda.', { parse_mode: 'Markdown' });
     return;
   }
 
@@ -1404,6 +1577,7 @@ bot.on('message:text', async (ctx) => {
     }
 
     const customerName = ctx.from?.first_name ?? 'Customer';
+    const isFirstMessage = ticket.messages.length === 0;
 
     await forwardCustomerMessageToAdmin(
       telegramId,
@@ -1413,32 +1587,30 @@ bot.on('message:text', async (ctx) => {
       trxInfo
     );
 
-    const timestampStr = new Date(ticket.createdAt ?? new Date()).toLocaleString('id-ID');
-    const ticketConfirmationText = [
-      '✅ **Pesan Berhasil Diterima**',
-      '',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      `Halo Kak ${customerName}! 👋`,
-      '',
-      'Pesan Anda telah berhasil masuk ke sistem kami.',
-      '',
-      '📌 **Detail Tiket:**',
-      `🆔 **ID Tiket:** #${ticket.ticketId}`,
-      `📅 **Dibuat:** ${timestampStr}`,
-      `📊 **Status:** 🟢 OPEN`,
-      '',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '📌 **Apa yang terjadi selanjutnya?**',
-      '1. Tim CS akan segera meninjau pesan Anda',
-      '2. CS akan mengambil tiket Anda',
-      '3. Anda akan mendapat notifikasi saat CS merespons',
-      '',
-      '━━━━━━━━━━━━━━━━━━━━━',
-      '📌 *Ketik /status untuk mengecek progress tiket Anda.*',
-      '',
-      'Terima kasih telah menghubungi TopUpin! 🙏'
-    ].join('\n');
-    await ctx.reply(ticketConfirmationText, { parse_mode: 'Markdown' });
+    if (isFirstMessage) {
+      // Pesan pertama: tampilkan konfirmasi tiket lengkap
+      const timestampStr = new Date(ticket.createdAt ?? new Date()).toLocaleString('id-ID');
+      const ticketConfirmationText = [
+        '✅ **Pesan Diterima — Tiket CS Dibuat**',
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━',
+        `Halo Kak ${customerName}! 👋`,
+        '',
+        `🎫 **ID Tiket Anda:** \`#${ticket.ticketId}\``,
+        `📅 **Dibuat:** ${timestampStr}`,
+        `📊 **Status:** 🟢 OPEN — Menunggu CS`,
+        '',
+        '━━━━━━━━━━━━━━━━━━━━━',
+        '⏱ Tim CS akan merespons dalam < 5 menit (jam operasional).',
+        'Anda akan mendapat notifikasi saat CS mengambil tiket ini.',
+        '',
+        '📌 *Ketik /status untuk memantau progress tiket.*',
+      ].join('\n');
+      await ctx.reply(ticketConfirmationText, { parse_mode: 'Markdown' });
+    } else {
+      // Pesan selanjutnya: konfirmasi singkat saja
+      await ctx.reply('💬 Pesan diteruskan ke tim CS. Mohon tunggu balasan.');
+    }
     return;
   }
 

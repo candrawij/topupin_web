@@ -19,6 +19,7 @@ interface UserSession {
     gameId?: number;
     gameSlug?: string;
     userGameId?: string;
+    productId?: number;
   };
 }
 
