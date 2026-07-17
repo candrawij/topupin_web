@@ -1,11 +1,10 @@
 <?php
 session_start();
-include "../config/koneksi.php"; 
+include "../config/koneksi.php";
 
-/** @var mysqli $conn */ 
-// Tambahkan baris di atas! Komentar ini bertugas memberi tahu teks editor kalau $conn itu ada.
+/** @var mysqli $conn */
 
-if (isset($_SESSION['admin_logged_in'])) {
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
     header("Location: dashboard.php");
     exit;
 }
@@ -16,10 +15,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = mysqli_real_escape_string($conn, $_POST['username']);
     $password = $_POST['password'];
 
-    // Akun statis untuk login admin
-    if ($username === "admin" && $password === "admin123") {
+    // Cek tabel admin dulu (database-driven)
+    $qAdmin = mysqli_query($conn, "SELECT * FROM admin WHERE username = '$username' LIMIT 1");
+    $adminData = mysqli_fetch_assoc($qAdmin);
+
+    $loginOk = false;
+
+    if ($adminData) {
+        // Coba verifikasi dengan password_verify (hash bcrypt)
+        if (password_verify($password, $adminData['password'])) {
+            $loginOk = true;
+        }
+        // Fallback: password plain-text (untuk akun lama sebelum di-hash)
+        elseif ($password === $adminData['password']) {
+            $loginOk = true;
+        }
+    }
+
+    if ($loginOk) {
         $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = $username;
+        $_SESSION['admin_user']      = $adminData['username'];
+        $_SESSION['admin_nama']      = isset($adminData['nama_lengkap']) ? $adminData['nama_lengkap'] : 'Administrator';
         header("Location: dashboard.php");
         exit;
     } else {

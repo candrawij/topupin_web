@@ -72,6 +72,10 @@ $items_latest = mysqli_query($conn, "
                 <a href="index.php" class="text-white font-medium hover:text-indigo-400 transition"><i class="fa-solid fa-house mr-1"></i> Home</a>
                 <a href="catalog.php" class="text-gray-400 font-medium hover:text-indigo-400 transition"><i class="fa-solid fa-store mr-1"></i> Catalog</a>
                 <a href="riwayat.php" class="text-gray-400 font-medium hover:text-indigo-400 transition"><i class="fa-solid fa-receipt mr-1"></i> Lacak Pesanan</a>
+                <a href="tentang.php" class="text-gray-400 font-medium hover:text-indigo-400 transition"><i class="fa-solid fa-circle-info mr-1"></i> Tentang</a>
+                <a href="demo.php" class="flex items-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 font-semibold text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 transition">
+                    <i class="fa-solid fa-flask text-xs"></i> Demo Guide
+                </a>
             </div>
 
             <div class="flex items-center space-x-3">
@@ -132,7 +136,57 @@ $items_latest = mysqli_query($conn, "
     <!-- Main Content -->
     <main class="container mx-auto px-6 pb-20 max-w-6xl space-y-20 flex-grow">
 
-        <!-- KATEGORI 1: TOP UP GAME -->
+        <!-- ===== SECTION: FITUR UNGGULAN ===== -->
+        <section class="pt-4">
+            <div class="text-center mb-10">
+                <span class="text-xs font-semibold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-4 py-1.5 rounded-full border border-indigo-500/20">Mengapa TopUpIn?</span>
+                <h2 class="text-2xl font-bold text-white mt-3">Platform Game Terlengkap & Terpercaya</h2>
+                <p class="text-gray-500 text-sm mt-2 max-w-lg mx-auto">Dari top-up resmi, jual-beli akun, hingga item game — semua tersedia dalam satu platform.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <?php
+                $features = [
+                    ['🔒', 'Rekening Bersama', 'Dana pembeli ditahan platform hingga transaksi diverifikasi. 100% aman dari penipuan.', 'border-indigo-500/20', 'text-indigo-400'],
+                    ['⚡', 'Top Up Instan', 'Proses top-up diamond, UC, dan mata uang game lainnya langsung tanpa antri.', 'border-amber-500/20', 'text-amber-400'],
+                    ['💬', 'CS 24/7 Real-Time', 'Live chat langsung dengan Customer Service kami kapanpun Anda butuh bantuan.', 'border-emerald-500/20', 'text-emerald-400'],
+                    ['🤝', 'Marketplace Seller', 'Jual akun & item game dengan mudah. Saldo otomatis masuk ke dompet seller.', 'border-purple-500/20', 'text-purple-400'],
+                ];
+                foreach ($features as $f) {
+                    echo "<div class='glass rounded-2xl p-5 border {$f[3]} hover:translate-y-[-3px] transition-all duration-300'>";
+                    echo "<div class='text-3xl mb-3'>{$f[0]}</div>";
+                    echo "<h3 class='font-bold text-white text-sm mb-2'>{$f[1]}</h3>";
+                    echo "<p class='text-gray-500 text-xs leading-relaxed'>{$f[2]}</p>";
+                    echo "</div>";
+                }
+                ?>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: CARA KERJA ===== -->
+        <section>
+            <div class="text-center mb-10">
+                <span class="text-xs font-semibold text-purple-400 uppercase tracking-widest bg-purple-500/10 px-4 py-1.5 rounded-full border border-purple-500/20">Mudah & Cepat</span>
+                <h2 class="text-2xl font-bold text-white mt-3">Cara Beli di TopUpIn</h2>
+            </div>
+            <div class="grid sm:grid-cols-3 gap-4">
+                <?php
+                $how = [
+                    ['01', '🔍', 'Pilih Produk', 'Jelajahi katalog lengkap Top-Up, Akun Game, dan Item Game dari berbagai game populer.'],
+                    ['02', '💳', 'Bayar & Checkout', 'Pilih metode pembayaran (QRIS / Transfer BCA) dan selesaikan pembayaran Anda.'],
+                    ['03', '✅', 'Pesanan Diproses', 'Tim admin kami memverifikasi dan memproses pesanan Anda. Notifikasi dikirim otomatis!'],
+                ];
+                foreach ($how as $i => $h) {
+                    echo "<div class='glass rounded-2xl p-6 text-center border border-gray-800 relative'>";
+                    echo "<div class='absolute top-4 left-4 text-xs font-black text-gray-700'>{$h[0]}</div>";
+                    echo "<div class='text-4xl mb-3'>{$h[1]}</div>";
+                    echo "<h3 class='font-bold text-white text-sm mb-2'>{$h[2]}</h3>";
+                    echo "<p class='text-gray-500 text-xs leading-relaxed'>{$h[3]}</p>";
+                    echo "</div>";
+                }
+                ?>
+            </div>
+        </section>
+
         <section>
             <div class="flex justify-between items-end mb-8">
                 <div>
