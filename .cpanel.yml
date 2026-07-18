@@ -1,7 +1,4 @@
-deployment:
+﻿deployment:
   tasks:
     - export DEPLOYPATH=/home/ekovmljg/public_html
-    - export BOTPATH=/home/ekovmljg/public_html/bot
-    - /bin/mkdir -p $BOTPATH
-    - /bin/rsync -avz --exclude '.git' --exclude 'bot' --exclude 'node_modules' --exclude '.cpanel.yml' ./ $DEPLOYPATH/
-    - /bin/rsync -avz --exclude 'node_modules' --exclude 'data' --exclude '.env' ./bot/ $BOTPATH/
+    - /bin/rsync -avz --exclude '.git' --exclude 'bot' --exclude 'node_modules' --exclude '.cpanel.yml' --exclude 'bot_upload.zip' --exclude 'image.png' ./ $DEPLOYPATH/
