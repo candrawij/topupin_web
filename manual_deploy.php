@@ -123,13 +123,14 @@ if ($step === 'diag' || $step === 'all') {
         'Bot dist/app.js' => '/home/ekovmljg/public_html/bot/dist/app.js',
         'node_modules'    => '/home/ekovmljg/public_html/bot/node_modules',
         'Bot .env'        => '/home/ekovmljg/public_html/bot/.env',
+        'nodevenv npm'    => '/home/ekovmljg/nodevenv/public_html/bot/22/bin/npm',
     ] as $label => $path) {
         $ok = is_dir($path) || is_file($path);
         echo "  $label: " . ($ok ? "<span class='badge-ok'>Ada</span>" : "<span class='badge-err'>Tidak Ada</span>") . " <code style='font-size:11px'>$path</code><br>";
     }
     if (shell_available()) {
         echo "<br><b>Node.js &amp; npm:</b><br>";
-        foreach (['which node','which npm','which npx','node --version','npm --version'] as $cmd) {
+        foreach (['which node','which npm','which npx','node --version','npm --version','ls /home/ekovmljg/nodevenv/public_html/bot'] as $cmd) {
             $r = run_cmd($cmd);
             echo "  <code>$cmd</code>: <span class='info'>" . htmlspecialchars($r['output'] ?: '(tidak ditemukan)') . "</span><br>";
         }
@@ -166,7 +167,7 @@ if ($step === 'npm' || $step === 'all') {
         echo "<span class='warn'>?? Shell dinonaktifkan.</span><br>";
         echo "<b>Solusi manual:</b> cPanel ? Setup Node.js App ? <b>Run NPM Install</b><br>";
     } else {
-        $npm = find_binary(['/usr/local/bin/npm','/usr/bin/npm','npm']);
+        $npm = find_binary(['/home/ekovmljg/nodevenv/public_html/bot/22/bin/npm', '/usr/local/bin/npm','/usr/bin/npm','npm']);
         if ($npm) {
             echo "<span class='info'>npm ditemukan: <code>$npm</code></span><br>";
             echo "<b>Menjalankan:</b> <code>cd $dst_bot && $npm install --omit=dev</code><br><br>";
@@ -196,7 +197,7 @@ if ($step === 'prisma' || $step === 'all') {
             $cmd = "cd $dst_bot && $prisma_local generate";
             echo "<span class='info'>Prisma ditemukan di node_modules.</span><br>";
         } else {
-            $npx = find_binary(['/usr/local/bin/npx','/usr/bin/npx','npx']);
+            $npx = find_binary(['/home/ekovmljg/nodevenv/public_html/bot/22/bin/npx', '/usr/local/bin/npx','/usr/bin/npx','npx']);
             $cmd = $npx ? "cd $dst_bot && $npx prisma generate" : '';
         }
         if ($cmd) {
