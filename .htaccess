@@ -1,0 +1,21 @@
+﻿# TopUpin - .htaccess
+# File ini diperlukan oleh cPanel Setup Node.js App untuk menyimpan konfigurasi Passenger
+
+Options -Indexes
+
+# Izinkan akses ke file PHP normal
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
+
+# Keamanan: blokir akses ke file sensitif
+<FilesMatch "\.(env|json|lock|yml|yaml|md|gitignore)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Izinkan akses package.json untuk health check (opsional, bisa dihapus)
+<Files "package.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
