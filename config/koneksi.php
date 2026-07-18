@@ -16,9 +16,9 @@ if ($is_local) {
     // 🌍 Konfigurasi SERVER (cPanel)
     // Silakan edit bagian ini HANYA SEKALI sesuai database cPanel Anda
     $db_host = 'localhost'; // Biasanya tetap localhost di cPanel
-    $db_user = 'ekovmljg_topup'; // Ganti dengan DB user cPanel Anda
-    $db_pass = 'YOUR_CPANEL_DB_PASSWORD'; // Ganti dengan password DB cPanel
-    $db_name = 'ekovmljg_topup'; // Ganti dengan nama DB cPanel Anda
+    $db_user = 'ekovmljg_topupin'; // Ganti dengan DB user cPanel Anda
+    $db_pass = 'topupinipin'; // Ganti dengan password DB cPanel
+    $db_name = 'ekovmljg_topup_game'; // Ganti dengan nama DB cPanel Anda
 }
 
 // Override dengan Environment Variables jika diset (opsional)
