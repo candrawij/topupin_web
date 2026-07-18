@@ -1,6 +1,6 @@
-<?php
+ï»¿<?php
 // ============================================================
-// TOPUPIN — Full Auto Deploy Script
+// TOPUPIN ï¿½ Full Auto Deploy Script
 // Akses via: https://topupinweb.my.id/manual_deploy.php?token=DEPLOY_SECRET
 // ============================================================
 
@@ -15,7 +15,7 @@ header('Content-Type: text/html; charset=utf-8');
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
 if ($token !== DEPLOY_TOKEN) {
     http_response_code(403);
-    die('<h2 style="color:red;font-family:monospace;">403 Forbidden — Token salah.<br>Akses dengan: ?token=TOKEN_ANDA</h2>');
+    die('<h2 style="color:red;font-family:monospace;">403 Forbidden ï¿½ Token salah.<br>Akses dengan: ?token=TOKEN_ANDA</h2>');
 }
 
 $step = $_GET['step'] ?? 'all';
@@ -38,7 +38,7 @@ pre{background:#1f2937;padding:12px;border-radius:8px;overflow-x:auto;font-size:
 </style>
 </head>
 <body>
-<h1>?? TopUpin — Auto Deploy Dashboard</h1>
+<h1>?? TopUpin ï¿½ Auto Deploy Dashboard</h1>
 <p class="warn">?? Hapus atau proteksi file ini setelah selesai!</p>
 <nav style="margin:15px 0">
 <a href="?token=<?=DEPLOY_TOKEN?>&step=all"    class="btn btn-green">?? Full Deploy</a>
@@ -135,7 +135,7 @@ if ($step === 'diag' || $step === 'all') {
             echo "  <code>$cmd</code>: <span class='info'>" . htmlspecialchars($r['output'] ?: '(tidak ditemukan)') . "</span><br>";
         }
     } else {
-        echo "<br><span class='warn'>Shell functions dinonaktifkan — tidak bisa cek Node.js.</span><br>";
+        echo "<br><span class='warn'>Shell functions dinonaktifkan ï¿½ tidak bisa cek Node.js.</span><br>";
     }
     echo "</div>";
     if ($step === 'diag') { echo "</body></html>"; exit; }
@@ -144,7 +144,7 @@ if ($step === 'diag' || $step === 'all') {
 // SYNC FILE
 if ($step === 'sync' || $step === 'all') {
     global $src, $dst_web, $dst_bot;
-    echo "<div class='section'><h3>?? Step 1 — Sinkronisasi File</h3>";
+    echo "<div class='section'><h3>?? Step 1 ï¿½ Sinkronisasi File</h3>";
     echo "<b>Website PHP ? public_html:</b><br>";
     $r = sync_directory($src, $dst_web, ['.git','bot','node_modules','.cpanel.yml','manual_deploy.php']);
     echo $r['ok']
@@ -162,7 +162,7 @@ if ($step === 'sync' || $step === 'all') {
 // NPM INSTALL
 if ($step === 'npm' || $step === 'all') {
     global $dst_bot;
-    echo "<div class='section'><h3>?? Step 2 — npm install (production)</h3>";
+    echo "<div class='section'><h3>?? Step 2 ï¿½ npm install (production)</h3>";
     if (!shell_available()) {
         echo "<span class='warn'>?? Shell dinonaktifkan.</span><br>";
         echo "<b>Solusi manual:</b> cPanel ? Setup Node.js App ? <b>Run NPM Install</b><br>";
@@ -188,17 +188,22 @@ if ($step === 'npm' || $step === 'all') {
 // PRISMA GENERATE
 if ($step === 'prisma' || $step === 'all') {
     global $dst_bot;
-    echo "<div class='section'><h3>??? Step 3 — Prisma Generate</h3>";
+    echo "<div class='section'><h3>??? Step 3 ï¿½ Prisma Generate</h3>";
     if (!shell_available()) {
         echo "<span class='warn'>?? Shell dinonaktifkan. Jalankan via SSH: <code>npx prisma generate</code></span><br>";
     } else {
+        $nodevenv_activate = '/home/ekovmljg/nodevenv/public_html/bot/22/bin/activate';
         $prisma_local = "$dst_bot/node_modules/.bin/prisma";
-        if (file_exists($prisma_local)) {
+        if (file_exists($prisma_local) && file_exists($nodevenv_activate)) {
+            // Gunakan source activate agar node tersedia untuk menjalankan prisma
+            $cmd = "bash -c 'source $nodevenv_activate && cd $dst_bot && node $prisma_local generate'";
+            echo "<span class='info'>Prisma ditemukan. Menjalankan dengan source activate...</span><br>";
+        } elseif (file_exists($prisma_local)) {
             $cmd = "cd $dst_bot && $prisma_local generate";
-            echo "<span class='info'>Prisma ditemukan di node_modules.</span><br>";
+            echo "<span class='info'>Prisma ditemukan di node_modules (tanpa activate).</span><br>";
         } else {
             $npx = find_binary(['/home/ekovmljg/nodevenv/public_html/bot/22/bin/npx', '/usr/local/bin/npx','/usr/bin/npx','npx']);
-            $cmd = $npx ? "cd $dst_bot && $npx prisma generate" : '';
+            $cmd = $npx ? "bash -c 'source $nodevenv_activate && cd $dst_bot && npx prisma generate'" : '';
         }
         if ($cmd) {
             echo "<b>Menjalankan:</b> <code>$cmd</code><br><br>";
@@ -219,7 +224,7 @@ if ($step === 'prisma' || $step === 'all') {
 // RESTART
 if ($step === 'restart' || $step === 'all') {
     global $dst_bot;
-    echo "<div class='section'><h3>?? Step 4 — Restart Node.js App</h3>";
+    echo "<div class='section'><h3>?? Step 4 ï¿½ Restart Node.js App</h3>";
     $tmp_dir = $dst_bot . '/tmp';
     $restart_file = $tmp_dir . '/restart.txt';
     @mkdir($tmp_dir, 0755, true);
