@@ -5,5 +5,3 @@ deployment:
     - /bin/mkdir -p $BOTPATH
     - /bin/rsync -avz --exclude '.git' --exclude 'bot' --exclude 'node_modules' --exclude '.cpanel.yml' ./ $DEPLOYPATH/
     - /bin/rsync -avz --exclude 'node_modules' --exclude 'data' --exclude '.env' ./bot/ $BOTPATH/
-    - cd $BOTPATH && /usr/local/bin/npm install --omit=dev
-    - cd $BOTPATH && /usr/local/bin/npx prisma generate
