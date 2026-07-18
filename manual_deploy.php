@@ -8,7 +8,7 @@ define('DEPLOY_TOKEN', 'topupin_deploy_2024_secret');
 
 $src     = '/home/ekovmljg/repositories/topupin_web';
 $dst_web = '/home/ekovmljg/public_html';
-$dst_bot = '/home/ekovmljg/bot';
+$dst_bot = '/home/ekovmljg/public_html/bot';
 
 header('Content-Type: text/html; charset=utf-8');
 
@@ -119,10 +119,10 @@ if ($step === 'diag' || $step === 'all') {
     foreach ([
         'Repo GitHub'     => '/home/ekovmljg/repositories/topupin_web',
         'public_html'     => '/home/ekovmljg/public_html',
-        'Bot folder'      => '/home/ekovmljg/bot',
-        'Bot dist/app.js' => '/home/ekovmljg/bot/dist/app.js',
-        'node_modules'    => '/home/ekovmljg/bot/node_modules',
-        'Bot .env'        => '/home/ekovmljg/bot/.env',
+        'Bot folder'      => '/home/ekovmljg/public_html/bot',
+        'Bot dist/app.js' => '/home/ekovmljg/public_html/bot/dist/app.js',
+        'node_modules'    => '/home/ekovmljg/public_html/bot/node_modules',
+        'Bot .env'        => '/home/ekovmljg/public_html/bot/.env',
     ] as $label => $path) {
         $ok = is_dir($path) || is_file($path);
         echo "  $label: " . ($ok ? "<span class='badge-ok'>Ada</span>" : "<span class='badge-err'>Tidak Ada</span>") . " <code style='font-size:11px'>$path</code><br>";
@@ -228,7 +228,7 @@ if ($step === 'restart' || $step === 'all') {
     } else {
         echo "<span class='warn'>?? Tidak bisa buat restart.txt. Restart manual: cPanel ? Setup Node.js App ? Restart</span><br>";
     }
-    echo "<br><span class='info'>Cek status: <a href='https://topupinweb.my.id/health' target='_blank' style='color:#818cf8'>https://topupinweb.my.id/health</a></span><br>";
+    echo "<br><span class='info'>Cek status: <a href='https://topupinweb.my.id/bot/health' target='_blank' style='color:#818cf8'>https://topupinweb.my.id/bot/health</a></span><br>";
     echo "</div>";
     if ($step === 'restart') { echo "</body></html>"; exit; }
 }
@@ -242,7 +242,7 @@ if ($step === 'all') {
     echo "2. Klik <b>Run NPM Install</b><br>";
     echo "3. Set ENV: <code>DATABASE_URL=mysql://ekovmljg_topupin:topupinipin@localhost:3306/ekovmljg_topup_game</code><br>";
     echo "4. Klik <b>Restart</b><br><br>";
-    echo "Cek: <a href='https://topupinweb.my.id/health' target='_blank' style='color:#4ade80'>https://topupinweb.my.id/health</a>";
+    echo "Cek: <a href='https://topupinweb.my.id/bot/health' target='_blank' style='color:#4ade80'>https://topupinweb.my.id/bot/health</a>";
     echo "</div>";
 }
 ?>
