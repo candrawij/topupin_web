@@ -5,7 +5,8 @@ import { config } from '../config.js';
 import { buildAdminDashboardLink, buildCsListLink, buildCustomerSupportLink } from '../services/telegramLink.js';
 import { getWebsiteUserByEmail, getWebsiteUserById } from '../services/websiteUserStore.js';
 import { prisma } from '../services/prisma.js';
-const defaultPort = Number(process.env.WEBSITE_API_PORT ?? 3001);
+// Di lingkungan cPanel (Passenger), PORT bisa berupa angka atau Unix socket string.
+const defaultPort = process.env.PORT ?? process.env.WEBSITE_API_PORT ?? 3001;
 const webhookHandler = config.webhookDomain
     ? webhookCallback(bot, 'http', {
         secretToken: config.webhookSecretToken || undefined,
