@@ -19,7 +19,6 @@ uploads/bukti/*
 
 # Bot Telegram (Node.js)
 bot/node_modules/
-bot/dist/
 bot/data/bot.lock
 bot/.env
 # bot/.env.example tetap di-commit (template tanpa nilai sensitif)
